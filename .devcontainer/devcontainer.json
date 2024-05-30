@@ -1,0 +1,16 @@
+{
+    // For format details, see https://aka.ms/vscode-remote/devcontainer.json
+    "name": "so-hands-on",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools-extension-pack"
+            ]
+        }
+    },
+    "remoteUser": "vscode"
+}
