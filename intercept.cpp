@@ -7,6 +7,7 @@ static int (*original_printf)(const char *, ...) = nullptr;
 
 extern "C" int printf(const char *format, ...)
 {
+    // Load original printf function if not loaded yet
     if (!original_printf)
     {
         original_printf = reinterpret_cast<int (*)(const char *, ...)>(dlsym(RTLD_NEXT, "printf"));
@@ -17,8 +18,11 @@ extern "C" int printf(const char *format, ...)
         }
     }
 
+    // Do some interception
     original_printf("printf has been intercepted!!!: ");
 
+    // Call original printf
+    // (Treating variadic things)
     va_list args;
     va_start(args, format);
     int result = vprintf(format, args);
