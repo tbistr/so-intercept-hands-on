@@ -1,7 +1,6 @@
 #include <dlfcn.h>
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
+#include <string>
+#include <iostream>
 
 static void *(*original_dlopen)(const char *filename, int flags) = nullptr;
 
@@ -12,25 +11,24 @@ extern "C" void *dlopen(const char *filename, int flags)
         original_dlopen = reinterpret_cast<void *(*)(const char *, int)>(dlsym(RTLD_NEXT, "dlopen"));
         if (!original_dlopen)
         {
-            std::fprintf(stderr, "Error loading original dlopen function.\n");
+            std::cout << "Error loading original dlopen function." << std::endl;
             std::exit(EXIT_FAILURE);
         }
     }
 
-    // We want to expose symbols of libc.so.6 to other libraries
-    flags &= ~RTLD_LOCAL;
-    flags |= RTLD_GLOBAL;
-
-    if (std::strcmp(filename, "libc.so.6") == 0)
+    if (std::string(filename) == "libm.so")
     {
-        // Assume that no other library has symbol such as 0xdeedbeef
+        // Set dummy variable, it has static address.
         static int dummy = 0xdeedbeef;
         Dl_info info;
+        // Find .so info which contains dummy variable address (=ownself).
         if (dladdr(&dummy, &info))
         {
-            // Load ownself instead of libc.so.6
-            // This program have loaded libc.so.6 implicitly.
-            // Thus we can expose symbols of original libc.so.6
+            // Load ownself instead of libm.so
+            // This program have loaded libm.so implicitly (see ldd ./intercept_dl.so).
+            // Thus we can expose symbols of original libm.so.
+            // If you want to hook library which is not loaded yet, you should load it explicitly with RTLD_GLOBAL.
+            // ex. original_dlopen("libm.so", RTLD_LAZY | RTLD_GLOBAL);
             return original_dlopen(info.dli_fname, flags);
         }
     }

@@ -1,37 +1,49 @@
-#include <stdlib.h>
-#include <dlfcn.h>
+#include <iostream>
+#include <stdlib.h> // for exit()
+#include <dlfcn.h>  // for dlopen(), dlsym()
+// we don't need math.h anymore
 
 int main()
 {
-    void *handle;
     char *error;
 
-    // load libc.so.6 dynamically
-    handle = dlopen("libc.so.6", RTLD_LAZY);
+    // load libm.so dynamically
+    auto handle = dlopen("libm.so", RTLD_LAZY);
     if (!handle)
-        exit(1);
-
+    {
+        fprintf(stderr, "%s\n", dlerror());
+        exit(EXIT_FAILURE);
+    }
     dlerror();
 
-    // search for printf symbol
-    auto printf_via_dl = (int (*)(const char *, ...))dlsym(handle, "printf");
+    // get pow() address
+    auto dl_pow = (double (*)(double, double))dlsym(handle, "pow");
     if ((error = dlerror()) != NULL)
-        exit(1);
+    {
+        fprintf(stderr, "%s\n", error);
+        exit(EXIT_FAILURE);
+    }
 
-    // call printf
-    printf_via_dl("Hello, world!\n");
+    // get log() address
+    auto dl_log = (double (*)(double))dlsym(handle, "log");
+    if ((error = dlerror()) != NULL)
+    {
+        fprintf(stderr, "%s\n", error);
+        exit(EXIT_FAILURE);
+    }
 
-    // test for func that is not intercepted
-    auto getenv_via_dl = (char *(*)(const char *))dlsym(handle, "getenv");
-    if (!getenv_via_dl)
-        exit(1);
+    // do same thing as main.cpp
+    double result;
+    auto x = 8.0;
+    auto y = 2.0;
+    result = dl_pow(x, y);
+    std::cout << "pow(8.0, 2.0) = " << result << std::endl;
 
-    auto result = getenv_via_dl("SAMPLE_ENV_VAR");
-    if (result)
-        printf_via_dl("SAMPLE_ENV_VAR: %s\n", result);
-    else
-        printf_via_dl("SAMPLE_ENV_VAR is not set.\n");
+    auto e = 2.718282;
+    result = dl_log(e);
+    std::cout << "log(e) = " << result << std::endl;
 
-    // close the library
+    // unload libm.so
     dlclose(handle);
+    return 0;
 }

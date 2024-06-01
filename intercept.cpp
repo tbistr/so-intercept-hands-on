@@ -1,32 +1,29 @@
-#include <cstdio>
 #include <dlfcn.h>
-#include <cstdarg>
-#include <cstdlib>
+#include <iostream>
 
-static int (*original_printf)(const char *, ...) = nullptr;
+static double (*original_pow)(double, double) = nullptr;
 
-extern "C" int printf(const char *format, ...)
+extern "C" double pow(double x, double y)
 {
-    // Load original printf function if not loaded yet
-    if (!original_printf)
+    // Load original pow() if not loaded yet
+    if (!original_pow)
     {
-        original_printf = reinterpret_cast<int (*)(const char *, ...)>(dlsym(RTLD_NEXT, "printf"));
-        if (!original_printf)
+        original_pow = reinterpret_cast<double (*)(double, double)>(dlsym(RTLD_NEXT, "pow"));
+        if (!original_pow)
         {
-            std::fprintf(stderr, "Error loading original printf function.\n");
+            std::cout << "Error loading original pow function." << std::endl;
             std::exit(EXIT_FAILURE);
         }
     }
 
     // Do some interception
-    original_printf("printf has been intercepted!!!: ");
+    x *= 2;
+    y *= 2;
 
-    // Call original printf
-    // (Treating variadic things)
-    va_list args;
-    va_start(args, format);
-    int result = vprintf(format, args);
-    va_end(args);
+    std::cout << "\033[31m";
+    std::cout << "Indercepted! Args are doubled: (" << x << ", " << y << ")" << std::endl;
+    std::cout << "\033[0m";
 
-    return result;
+    // Call original pow()
+    return original_pow(x, y);
 }

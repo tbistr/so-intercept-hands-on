@@ -2,35 +2,39 @@
 
 export SAMPLE_ENV_VAR="This is a sample environment variable"
 
-echo "=== main.cpp ==="
-g++ -o main main.cpp
+g++ -O0 -o main main.cpp -lm
+g++ -O0 -o main_via_dl main_via_dlopen.cpp -ldl
+
+echo "=== Running without interception ==="
+echo "> main.cpp"
 ./main
 echo
-
-echo "=== main_via_dlopen.cpp ==="
-g++ -o main main_via_dlopen.cpp -ldl
-./main
+echo "> main_via_dlopen.cpp"
+./main_via_dl
+echo "===================================="
 echo
 
 # Generate shared object file for intercepting printf
-g++ -shared -fPIC -o intercept.so intercept.cpp -ldl
+g++ -O0 -shared -fPIC -o intercept.so intercept.cpp -ldl
 
-echo "=== main.cpp (intercepted) ==="
-g++ -o main main.cpp -fno-builtin-printf -fno-builtin-fprintf
+echo "=== Running with native interception ==="
+echo "> main.cpp (intercepted)"
 LD_PRELOAD=./intercept.so ./main
 echo
-
-echo "=== main_via_dlopen.cpp (intercepted?) ==="
-g++ -o main main_via_dlopen.cpp -fno-builtin-printf -fno-builtin-fprintf -ldl
-LD_PRELOAD=./intercept.so ./main
+echo "> main_via_dlopen.cpp (intercepted?)"
+LD_PRELOAD=./intercept.so ./main_via_dl
+echo "========================================"
 echo
 
 # Generate shared object file for intercepting also dlopen
-g++ -shared -fPIC -o intercept_dl.so intercept.cpp intercept_dl.cpp -ldl
+g++ -O0 -shared -fPIC -o intercept_dl.so intercept.cpp intercept_dl.cpp -ldl
 
-echo "=== main_via_dlopen.cpp (intercepted with dlopen) ==="
-g++ -o main main_via_dlopen.cpp -fno-builtin-printf -fno-builtin-fprintf -ldl
+echo "=== Running with dlopen interception ==="
+echo "> main.cpp (intercepted with dlopen)"
 LD_PRELOAD=./intercept_dl.so ./main
 echo
+echo "> main_via_dlopen.cpp (intercepted with dlopen)"
+LD_PRELOAD=./intercept_dl.so ./main_via_dl
+echo "========================================="
 
-rm main intercept.so intercept_dl.so
+rm main main_via_dl intercept.so intercept_dl.so
